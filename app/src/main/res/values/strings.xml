@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BLE Peripheral</string>
+    <string name="ble_uuid">f92f872a-0bc6-4d54-a8e8-6934d76e61bb</string>
+</resources>
