@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -147,11 +148,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void advertise() {
+        checkLocationPermission();
         BluetoothLeAdvertiser advertiser = BluetoothAdapter.getDefaultAdapter().getBluetoothLeAdvertiser();
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .setConnectable(true)
+                .setTimeout(0)
                 .build();
 
         ParcelUuid parcelUuid = new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid)));
@@ -217,10 +220,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             super.onConnectionStateChange(device, status, newState);
-            Log.d(TAG, "onConnectionStateChange: ");
             Log.d(TAG, "onCharacteristicWriteRequest: a connected device: " + device.getName() + ", Address: " + device.getAddress() + ", UUID: " + device.getUuids());
 
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (newState == BluetoothGatt.STATE_CONNECTED) {
+                    bluetoothGattServer.connect(device, false);
+                    Log.d(TAG, "onConnectionStateChange: STATE_CONNECTED " + device.getAddress());
+                    Log.d(TAG, "Connected to device: " + device.getAddress());
+                } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                    Log.d(TAG, "onConnectionStateChange: STATE_DISCONNECTED");
+                }
+            } else {
+                Log.d(TAG, "onConnectionStateChange: " + status);
+            }
         }
+
 
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
@@ -254,18 +268,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 switch (status){
                     case "GREEN":
                         Log.d(TAG, "onCharacteristicWriteRequest: Message from client: " + status);
-                        statusButton.setBackground(getResources().getDrawable(R.drawable.background_green));
-                        statusText.setText(status);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                statusButton.setBackground(getResources().getDrawable(R.drawable.background_green));
+                                statusText.setText(status);
+                            }
+                        });
                         break;
                     case "RED":
                         Log.d(TAG, "onCharacteristicWriteRequest: Message from client: " + status);
-                        statusButton.setBackground(getResources().getDrawable(R.drawable.background_red));
-                        statusText.setText(status);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                statusButton.setBackground(getResources().getDrawable(R.drawable.background_red));
+                                statusText.setText(status);
+                            }
+                        });
                         break;
                     default:
                         Log.d(TAG, "onCharacteristicWriteRequest: Message from client: " + status);
-                        statusButton.setBackground(getResources().getDrawable(R.drawable.background_grey));
-                        statusText.setText(status);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                statusButton.setBackground(getResources().getDrawable(R.drawable.background_grey));
+                                statusText.setText(status);
+                            }
+                        });
                         break;
                 }
             }
